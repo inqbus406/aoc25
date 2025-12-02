@@ -61,17 +61,9 @@ fn part2(ranges: &[Vec<usize>]) -> usize {
     for range in ranges {
         for num in range[0]..=range[1] {
             let chars = num.to_string().chars().collect::<Vec<_>>();
-            for i in (1..(num.to_string().len())).rev() {
-                let mut invalid = true;
+            for i in (1..num.to_string().len()).rev() {
                 let chunks = chars.chunks(i).collect::<Vec<_>>();
-                let first = chunks.first().unwrap();
-                for chunk in chunks.iter().skip(1) {
-                    if chunk != first {
-                        invalid = false;
-                        break;
-                    }
-                }
-                if invalid {
+                if chunks.iter().skip(1).all(|c| *c == chunks[0]) {
                     result += num;
                     break;
                 }
