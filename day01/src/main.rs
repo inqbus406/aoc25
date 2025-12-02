@@ -26,17 +26,20 @@ fn main() -> anyhow::Result<()> {
             Some('L') => {
                 part2_result += if magnitude < number {
                     0
-                } else if number == 0 {
-                    magnitude / 100
+                } else if magnitude == number {
+                    1
                 } else {
-                    1 + ((magnitude - number) / 100)
+                    (magnitude - number) / 100
                 };
+                if magnitude > number && number > 0 {
+                    part2_result += 1;
+                }
                 number = (number - magnitude).rem_euclid(100);
-            },
+            }
             Some('R') => {
                 part2_result += (number + magnitude) / 100;
                 number = (number + magnitude).rem_euclid(100);
-            },
+            }
             _ => unreachable!(),
         }
         if number == 0 {
