@@ -21,14 +21,11 @@ fn main() -> anyhow::Result<()> {
         if line.is_empty() {
             continue;
         }
-        ranges.extend(line
-            .split(',')
-            .filter(|s| !s.is_empty())
-            .map(|r| {
-                r.split('-')
-                    .map(|n| n.parse::<usize>().unwrap())
-                    .collect::<Vec<_>>()
-            }));
+        ranges.extend(line.split(',').filter(|s| !s.is_empty()).map(|r| {
+            r.split('-')
+                .map(|n| n.parse::<usize>().unwrap())
+                .collect::<Vec<_>>()
+        }));
     }
 
     // let part1_result = part1(&ranges);

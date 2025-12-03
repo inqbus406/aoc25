@@ -16,20 +16,13 @@ fn main() -> anyhow::Result<()> {
 
     let mut part1_result = 0;
     let mut part2_result = 0;
-    for (line_num, line) in lines.enumerate() {
+    for line in lines {
         let Ok(line) = line else {
             continue;
         };
 
         let chars = line.chars().collect::<Vec<_>>();
-        let mut highest = 0;
-        for i in 0..(chars.len() - 1) {
-            for j in i+1..chars.len() {
-                let num = format!("{}{}", chars[i], chars[j]).parse::<usize>().unwrap();
-                highest = max(highest, num);
-            }
-        }
-        part1_result += highest;
+        part1_result += part1(&chars);
         part2_result += part2(&chars);
     }
 
@@ -39,23 +32,46 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn part2(chars: &Vec<char>) -> usize {
-    let nums = chars.iter().map(|c| c.to_digit(10).unwrap()).collect::<Vec<_>>();
+fn part1(chars: &Vec<char>) -> usize {
+    let mut highest = 0;
+    for i in 0..(chars.len() - 1) {
+        for j in i + 1..chars.len() {
+            let num = format!("{}{}", chars[i], chars[j])
+                .parse::<usize>()
+                .unwrap();
+            highest = max(highest, num);
+        }
+    }
+
+    highest
+}
+
+fn part2(chars: &[char]) -> usize {
+    let nums = chars
+        .iter()
+        .map(|c| c.to_digit(10).unwrap())
+        .collect::<Vec<_>>();
 
     part2_helper(&nums, 12)
 }
 
 fn part2_helper(nums: &[u32], n: usize) -> usize {
-    if n == 1 {
-        return *nums.iter().max().unwrap() as usize;
-    }
     if n > nums.len() {
         panic!("Looking for {n} digits but only have {}", nums.len());
     }
+    match n {
+        0 => return 0,
+        // Base case: pick the highest digit remaining
+        1 => return *nums.iter().max().unwrap() as usize,
+        _ => {}
+    }
+
+    // Only have enough digits left, return early
     if n == nums.len() {
         return nums.iter().fold(0, |acc, n| (acc * 10) + *n as usize);
     }
-    // Find the highest digit that is at least n digits away from the end of the array.
+
+    // Find the highest digit that is at least n digits away from the end of the array and recurse
     let mut highest = 0;
     let mut index = 0;
     for i in 0..(nums.len() - n + 1) {
@@ -64,6 +80,5 @@ fn part2_helper(nums: &[u32], n: usize) -> usize {
             highest = nums[i];
         }
     }
-    part2_helper(&nums[(index+1)..], n-1) + (highest as usize * 10usize.pow((n -  1) as u32))
+    part2_helper(&nums[(index + 1)..], n - 1) + (highest as usize * 10usize.pow((n - 1) as u32))
 }
-
