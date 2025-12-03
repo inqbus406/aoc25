@@ -14,11 +14,13 @@ fn main() -> anyhow::Result<()> {
     let reader = std::io::BufReader::new(f);
     let lines = reader.lines();
 
-    let mut part1 = 0;
-    for line in lines {
+    let mut part1_result = 0;
+    let mut part2_result = 0;
+    for (line_num, line) in lines.enumerate() {
         let Ok(line) = line else {
             continue;
         };
+
         let chars = line.chars().collect::<Vec<_>>();
         let mut highest = 0;
         for i in 0..(chars.len() - 1) {
@@ -27,11 +29,41 @@ fn main() -> anyhow::Result<()> {
                 highest = max(highest, num);
             }
         }
-        part1 += highest;
+        part1_result += highest;
+        part2_result += part2(&chars);
     }
 
-    println!("Part 1: {part1}");
+    println!("Part 1: {part1_result}");
+    println!("Part 2: {part2_result}");
 
     Ok(())
+}
+
+fn part2(chars: &Vec<char>) -> usize {
+    let nums = chars.iter().map(|c| c.to_digit(10).unwrap()).collect::<Vec<_>>();
+
+    part2_helper(&nums, 12)
+}
+
+fn part2_helper(nums: &[u32], n: usize) -> usize {
+    if n == 1 {
+        return *nums.iter().max().unwrap() as usize;
+    }
+    if n > nums.len() {
+        panic!("Looking for {n} digits but only have {}", nums.len());
+    }
+    if n == nums.len() {
+        return nums.iter().fold(0, |acc, n| (acc * 10) + *n as usize);
+    }
+    // Find the highest digit that is at least n digits away from the end of the array.
+    let mut highest = 0;
+    let mut index = 0;
+    for i in 0..(nums.len() - n + 1) {
+        if nums[i] > highest {
+            index = i;
+            highest = nums[i];
+        }
+    }
+    part2_helper(&nums[(index+1)..], n-1) + (highest as usize * 10usize.pow((n -  1) as u32))
 }
 
