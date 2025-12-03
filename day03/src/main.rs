@@ -21,9 +21,12 @@ fn main() -> anyhow::Result<()> {
             continue;
         };
 
-        let chars = line.chars().collect::<Vec<_>>();
-        part1_result += part1(&chars);
-        part2_result += part2(&chars);
+        let nums = line
+            .chars()
+            .map(|c| c.to_digit(10).unwrap())
+            .collect::<Vec<_>>();
+        part1_result += find_highest_num(&nums, 2);
+        part2_result += find_highest_num(&nums, 12);
     }
 
     println!("Part 1: {part1_result}");
@@ -32,30 +35,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn part1(chars: &Vec<char>) -> usize {
-    let mut highest = 0;
-    for i in 0..(chars.len() - 1) {
-        for j in i + 1..chars.len() {
-            let num = format!("{}{}", chars[i], chars[j])
-                .parse::<usize>()
-                .unwrap();
-            highest = max(highest, num);
-        }
-    }
-
-    highest
-}
-
-fn part2(chars: &[char]) -> usize {
-    let nums = chars
-        .iter()
-        .map(|c| c.to_digit(10).unwrap())
-        .collect::<Vec<_>>();
-
-    part2_helper(&nums, 12)
-}
-
-fn part2_helper(nums: &[u32], n: usize) -> usize {
+fn find_highest_num(nums: &[u32], n: usize) -> usize {
     if n > nums.len() {
         panic!("Looking for {n} digits but only have {}", nums.len());
     }
@@ -80,5 +60,5 @@ fn part2_helper(nums: &[u32], n: usize) -> usize {
             highest = nums[i];
         }
     }
-    part2_helper(&nums[(index + 1)..], n - 1) + (highest as usize * 10usize.pow((n - 1) as u32))
+    find_highest_num(&nums[(index + 1)..], n - 1) + (highest as usize * 10usize.pow((n - 1) as u32))
 }
