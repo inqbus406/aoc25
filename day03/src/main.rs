@@ -62,3 +62,20 @@ fn find_highest_num(nums: &[u32], n: usize) -> usize {
     }
     find_highest_num(&nums[(index + 1)..], n - 1) + (highest as usize * 10usize.pow((n - 1) as u32))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test1() {
+        let num = [9, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1, 1];
+        assert_eq!(find_highest_num(&num, 12), 987654321111);
+    }
+
+    #[test]
+    fn test2() {
+        let num = [8, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9];
+        assert_eq!(find_highest_num(&num, 12), 811111111119);
+    }
+}
