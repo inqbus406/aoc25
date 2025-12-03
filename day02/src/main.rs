@@ -31,10 +31,11 @@ fn main() -> anyhow::Result<()> {
             }));
     }
 
-    let part1_result = part1(&ranges);
-    let part2_result = part2(&ranges);
-    println!("Part 1: {part1_result}");
-    println!("Part 2: {part2_result}");
+    // let part1_result = part1(&ranges);
+    // let part2_result = part2(&ranges);
+    // println!("Part 1: {part1_result}");
+    // println!("Part 2: {part2_result}");
+    both_parts(&ranges);
 
     Ok(())
 }
@@ -72,4 +73,30 @@ fn part2(ranges: &[Vec<usize>]) -> usize {
     }
 
     result
+}
+
+fn both_parts(ranges: &[Vec<usize>]) {
+    let mut part1 = 0;
+    let mut part2 = 0;
+
+    for range in ranges {
+        for num in range[0]..=range[1] {
+            let num_string = num.to_string();
+            let midpoint = num_string.len() / 2;
+
+            let chars = num_string.chars().collect::<Vec<_>>();
+            for i in (1..chars.len()).rev() {
+                let chunks = chars.chunks(i).collect::<Vec<_>>();
+                if chunks.iter().skip(1).all(|c| *c == chunks[0]) {
+                    if i == midpoint {
+                        part1 += num;
+                    }
+                    part2 += num;
+                    break;
+                }
+            }
+        }
+    }
+    println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 }
