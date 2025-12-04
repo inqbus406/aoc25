@@ -12,9 +12,10 @@ fn main() -> anyhow::Result<()> {
         PathBuf::from("input")
     };
 
-    let map = Map::from_file(dir.join("day04.txt"))?;
+    let mut map = Map::from_file(dir.join("day04.txt"))?;
 
-    println!("Part 1: {}", map.part1());
+    println!("Part 1: {}", map.count_accessible().len());
+    println!("Part 2: {}", map.remove_accessible());
 
     Ok(())
 }
@@ -63,8 +64,8 @@ impl Map {
         })
     }
 
-    fn part1(&self) -> usize {
-        let mut count = 0;
+    fn count_accessible(&self) -> HashSet<Position> {
+        let mut accessible = HashSet::new();
         for roll in self.rolls.iter() {
             let mut adjacent_count = 0;
             // println!("Checking {} adjacent rolls", self.get_adjacent(roll).len());
@@ -74,12 +75,27 @@ impl Map {
                 }
             }
             if adjacent_count < 4 {
-                count += 1;
+                accessible.insert(*roll);
             }
         }
 
-        count
+        accessible
     }
+
+    fn remove_accessible(&mut self) -> usize {
+        let mut result = 0;
+        loop {
+            let accessible = self.count_accessible();
+            if accessible.is_empty() {
+                break;
+            }
+            self.rolls.retain(|p| !accessible.contains(p));
+            result += accessible.len();
+        }
+
+        result
+    }
+
 
     fn get_adjacent(&self, pos: &Position) -> Vec<Position> {
         [
