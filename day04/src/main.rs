@@ -68,7 +68,6 @@ impl Map {
         let mut accessible = HashSet::new();
         for roll in self.rolls.iter() {
             let mut adjacent_count = 0;
-            // println!("Checking {} adjacent rolls", self.get_adjacent(roll).len());
             for adjacent in self.get_adjacent(roll) {
                 if self.rolls.contains(&adjacent) {
                     adjacent_count += 1;
