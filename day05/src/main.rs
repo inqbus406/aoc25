@@ -47,7 +47,10 @@ impl Range {
 
     fn from_str(s: &str) -> anyhow::Result<Self> {
         let mut split = s.split('-');
-        Ok(Self::new(split.next().unwrap().parse()?, split.next().unwrap().parse()?))
+        Ok(Self::new(
+            split.next().unwrap().parse()?,
+            split.next().unwrap().parse()?,
+        ))
     }
 
     fn contains_val(&self, n: usize) -> bool {
@@ -88,7 +91,9 @@ struct ProduceChecker {
 
 impl ProduceChecker {
     fn new() -> Self {
-        Self { ranges: HashSet::new() }
+        Self {
+            ranges: HashSet::new(),
+        }
     }
 
     fn update_from_reader(&mut self, reader: &mut impl BufRead) -> anyhow::Result<()> {
