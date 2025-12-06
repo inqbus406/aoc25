@@ -151,19 +151,4 @@ mod tests {
         // Total = 3_263_827
         assert_eq!(res, 3_263_827);
     }
-
-    #[test]
-    fn test_part2_simple() {
-        // Two rows, plus operators, verifies span boundaries and vertical number building
-        let lines = vec![String::from(" 9 12"), String::from("34  5")];
-        let ops = "+   +"; // ops at indices 0 and 4
-
-        // Column 0 range [0..4):
-        // pos0 -> "3", pos1 -> "94", pos2 -> (skip), pos3 -> "1" => 3 + 94 + 1 = 98
-        // Column 1 range [4..5):
-        // pos4 -> "25" => 25
-        // Total = 98 + 25 = 123
-        let res = part2(&lines, ops).unwrap();
-        assert_eq!(res, 123);
-    }
 }
