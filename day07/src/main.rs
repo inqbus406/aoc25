@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
@@ -16,6 +16,7 @@ fn main() -> anyhow::Result<()> {
     while !map.step() {}
 
     println!("Part 1: {}", map.splits);
+    println!("Part 2: {}", map.beams.values().sum::<usize>());
 
     Ok(())
 }
@@ -26,9 +27,8 @@ struct Position(usize, usize);
 #[derive(Debug)]
 struct Map {
     splitters: HashSet<Position>,
-    width: usize,
     height: usize,
-    beams: HashSet<Position>,
+    beams: HashMap<Position, usize>,
     splits: usize,
 }
 
@@ -37,27 +37,25 @@ impl Map {
         let f = File::open(path)?;
         let reader = std::io::BufReader::new(f);
 
-        let mut width = 0;
         let mut height = 0;
         let mut splitters = HashSet::new();
 
         // beams should start with just 1 position, the starting position S
-        let mut beams = HashSet::new();
+        let mut beams = HashMap::new();
 
         for (y, line) in reader.lines().enumerate() {
             let line = line?;
-            width = line.len();
 
             for (x, c) in line.chars().enumerate() {
                 let p = Position(x, y);
 
                 match c {
                     'S' => {
-                        beams.insert(p);
-                    },
+                        beams.insert(p, 1);
+                    }
                     '^' => {
                         splitters.insert(p);
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -67,7 +65,6 @@ impl Map {
 
         Ok(Self {
             splitters,
-            width,
             height,
             beams,
             splits: 0,
@@ -76,19 +73,23 @@ impl Map {
 
     // Returns true if all beams have exited tachyon (simulation is done)
     fn step(&mut self) -> bool {
-        if self.beams.iter().all(|p| p.1 == usize::MAX) {
+        if self.beams.iter().all(|p| p.0.1 == usize::MAX) {
             return true;
         }
-        let mut new_beams = HashSet::new();
+        let mut new_beams = HashMap::new();
 
-        for beam in self.beams.drain() {
+        for (beam, timelines) in self.beams.drain() {
             let next_pos = Self::next_pos(&beam, self.height);
             if self.splitters.contains(&next_pos) {
-                new_beams.insert(Position(next_pos.0 - 1, next_pos.1));
-                new_beams.insert(Position(next_pos.0 + 1, next_pos.1));
+                *new_beams
+                    .entry(Position(next_pos.0 - 1, next_pos.1))
+                    .or_insert(0) += timelines;
+                *new_beams
+                    .entry(Position(next_pos.0 + 1, next_pos.1))
+                    .or_insert(0) += timelines;
                 self.splits += 1;
             } else {
-                new_beams.insert(next_pos);
+                *new_beams.entry(next_pos).or_insert(0) += timelines;
             }
         }
 
