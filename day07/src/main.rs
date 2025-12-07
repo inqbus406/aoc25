@@ -28,7 +28,10 @@ struct Position(usize, usize);
 struct Map {
     splitters: HashSet<Position>,
     height: usize,
+    // Position -> number of timelines that  contain this position
     beams: HashMap<Position, usize>,
+    // Second buffer
+    next_beams: HashMap<Position, usize>,
     splits: usize,
 }
 
@@ -67,6 +70,7 @@ impl Map {
             splitters,
             height,
             beams,
+            next_beams: HashMap::new(),
             splits: 0,
         })
     }
@@ -76,24 +80,31 @@ impl Map {
         if self.beams.iter().all(|p| p.0.1 == usize::MAX) {
             return true;
         }
-        let mut new_beams = HashMap::new();
 
-        for (beam, timelines) in self.beams.drain() {
-            let next_pos = Self::next_pos(&beam, self.height);
+        let Map {
+            beams,
+            next_beams,
+            height,
+            ..
+        } = self;
+
+        for (beam, timelines) in beams.iter() {
+            let next_pos = Self::next_pos(&beam, *height);
             if self.splitters.contains(&next_pos) {
-                *new_beams
+                *next_beams
                     .entry(Position(next_pos.0 - 1, next_pos.1))
                     .or_insert(0) += timelines;
-                *new_beams
+                *next_beams
                     .entry(Position(next_pos.0 + 1, next_pos.1))
                     .or_insert(0) += timelines;
                 self.splits += 1;
             } else {
-                *new_beams.entry(next_pos).or_insert(0) += timelines;
+                *next_beams.entry(next_pos).or_insert(0) += timelines;
             }
         }
 
-        self.beams = new_beams;
+        std::mem::swap(beams, next_beams);
+        next_beams.clear();
 
         false
     }
@@ -105,5 +116,18 @@ impl Map {
         } else {
             Position(pos.0, pos.1 + 1)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_sample_input() -> anyhow::Result<()> {
+        let mut map = Map::from_file(&"test_input/day07.txt")?;
+        while !map.step() {}
+        assert_eq!(map.splits, 21);
+        assert_eq!(map.beams.values().sum::<usize>(), 40);
+        Ok(())
     }
 }
