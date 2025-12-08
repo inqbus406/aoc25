@@ -1,10 +1,10 @@
+use itertools::Itertools;
 use std::cmp::Ordering;
+use std::collections::BinaryHeap;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
-use std::collections::BinaryHeap;
-use itertools::Itertools;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
@@ -15,10 +15,11 @@ fn main() -> anyhow::Result<()> {
     };
 
     let mut system = System::from_file(&dir.join("day08.txt"))?;
-    // dbg!(&system);
-    system.make_n_closest_connections(n);
-    let connections = system.connections.unwrap();
-    let connections_sorted = connections.iter().sorted().collect::<Vec<_>>();
+    let connections_sorted = system
+        .make_n_closest_connections(n)
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
 
     // Build circuits
     let mut circuit_finder = CircuitFinder::new(system.junction_boxes.len());
@@ -27,7 +28,6 @@ fn main() -> anyhow::Result<()> {
     }
 
     let mut roots_checked = HashSet::new();
-
     let sorted_circuit_sizes = (0..n)
         .flat_map(|x| {
             let root = circuit_finder.find(x);
@@ -44,6 +44,20 @@ fn main() -> anyhow::Result<()> {
     let part1 = sorted_circuit_sizes.iter().take(3).product::<usize>();
     println!("Part 1: {part1}");
 
+    // Now do part 2
+    let connections_sorted = system.make_n_closest_connections(n * n);
+
+    // Build circuits again
+    circuit_finder = CircuitFinder::new(system.junction_boxes.len());
+    for conn in connections_sorted {
+        circuit_finder.join(conn.j0, conn.j1);
+        if circuit_finder.all_connected() {
+            let part2 = system.junction_boxes[conn.j0].0 * system.junction_boxes[conn.j1].0;
+            println!("Part 2: {part2}");
+            break;
+        }
+    }
+
     Ok(())
 }
 
@@ -54,6 +68,7 @@ struct JunctionBox(usize, usize, usize);
 struct CircuitFinder {
     parent: Vec<usize>,
     size: Vec<usize>,
+    num_circuits: usize,
 }
 
 impl CircuitFinder {
@@ -61,6 +76,7 @@ impl CircuitFinder {
         Self {
             parent: (0..n).collect(),
             size: vec![1; n],
+            num_circuits: n,
         }
     }
 
@@ -79,7 +95,7 @@ impl CircuitFinder {
         let mut y_root = self.find(y);
 
         if x_root == y_root {
-            // already in same circuit
+            // already in the same circuit
             return;
         }
 
@@ -89,11 +105,18 @@ impl CircuitFinder {
         }
         self.parent[y_root] = x_root;
         self.size[x_root] += self.size[y_root];
+
+        // Merged, decrease number of circuits
+        self.num_circuits -= 1;
     }
 
     fn circuit_size(&mut self, x: usize) -> usize {
         let root = self.find(x);
         self.size[root]
+    }
+
+    fn all_connected(&self) -> bool {
+        self.num_circuits == 1
     }
 }
 
@@ -108,8 +131,7 @@ impl Eq for Connection {}
 
 impl PartialEq<Self> for Connection {
     fn eq(&self, other: &Self) -> bool {
-        self.j0 == other.j0 && self.j1 == other.j1
-        || self.j0 == other.j1 && self.j1 == other.j0
+        self.j0 == other.j0 && self.j1 == other.j1 || self.j0 == other.j1 && self.j1 == other.j0
     }
 }
 
@@ -127,22 +149,14 @@ impl Ord for Connection {
 
 impl Connection {
     fn new(j0: usize, j1: usize, distance: f32) -> Self {
-        Self {
-            j0,
-            j1,
-            distance,
-        }
+        Self { j0, j1, distance }
     }
-
 }
 
 #[derive(Debug)]
 struct System {
     // Vertices
     junction_boxes: Vec<JunctionBox>,
-
-    // Edges
-    connections: Option<Vec<Connection>>,
 }
 
 impl System {
@@ -155,22 +169,23 @@ impl System {
             let Ok(line) = line else {
                 continue;
             };
-            let xyz = line.split(',').map(|s| s.parse::<usize>().unwrap()).collect::<Vec<_>>();
+            let xyz = line
+                .split(',')
+                .map(|s| s.parse::<usize>().unwrap())
+                .collect::<Vec<_>>();
             let junction_box = JunctionBox(xyz[0], xyz[1], xyz[2]);
             junction_boxes.push(junction_box);
         }
 
-        Ok(Self {
-            junction_boxes,
-            connections: None,
-        })
+        Ok(Self { junction_boxes })
     }
 
-    fn make_n_closest_connections(&mut self, n: usize) {
+    fn make_n_closest_connections(&mut self, n: usize) -> Vec<Connection> {
         let mut heap = BinaryHeap::new();
         for j0 in 0..self.junction_boxes.len() {
-            for j1 in (j0+1)..self.junction_boxes.len() {
-                let distance = Self::euclidean_distance(&self.junction_boxes[j0], &self.junction_boxes[j1]);
+            for j1 in (j0 + 1)..self.junction_boxes.len() {
+                let distance =
+                    Self::euclidean_distance(&self.junction_boxes[j0], &self.junction_boxes[j1]);
                 let conn = Connection::new(j0, j1, distance);
 
                 if heap.len() < n {
@@ -186,8 +201,7 @@ impl System {
             }
         }
 
-        self.connections = Some(heap.into_iter().collect());
-
+        heap.into_sorted_vec()
     }
 
     fn euclidean_distance(v0: &JunctionBox, v1: &JunctionBox) -> f32 {
@@ -196,5 +210,4 @@ impl System {
         let dz = v0.2 as f32 - v1.2 as f32;
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
-
 }
