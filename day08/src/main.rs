@@ -15,15 +15,11 @@ fn main() -> anyhow::Result<()> {
     };
 
     let mut system = System::from_file(&dir.join("day08.txt"))?;
-    let connections_sorted = system
-        .make_n_closest_connections(n)
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>();
+    let connections_sorted = system.make_n_closest_connections(n * n);
 
     // Build circuits
     let mut circuit_finder = CircuitFinder::new(system.junction_boxes.len());
-    for conn in connections_sorted {
+    for conn in &connections_sorted[0..n] {
         circuit_finder.join(conn.j0, conn.j1);
     }
 
@@ -45,8 +41,6 @@ fn main() -> anyhow::Result<()> {
     println!("Part 1: {part1}");
 
     // Now do part 2
-    let connections_sorted = system.make_n_closest_connections(n * n);
-
     // Build circuits again
     circuit_finder = CircuitFinder::new(system.junction_boxes.len());
     for conn in connections_sorted {
