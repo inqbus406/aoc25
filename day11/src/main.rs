@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     let graph = Graph::from_file(&dir.join("day11.txt"))?;
-    let part1 = graph.paths_you_to_out("you", "out");
+    let part1 = graph.count_paths("you", "out");
     let part2 = graph.part2("svr", "out", false, false);
 
     println!("Part 1: {part1}");
@@ -58,7 +58,7 @@ impl Graph {
         Ok(Self { nodes })
     }
 
-    fn paths_you_to_out(&self, start: &str, end: &str) -> usize {
+    fn count_paths(&self, start: &str, end: &str) -> usize {
         if start == end {
             return 1;
         }
@@ -67,7 +67,7 @@ impl Graph {
             .get(start)
             .expect("Node not found!")
             .par_iter()
-            .map(|node| self.paths_you_to_out(node, end))
+            .map(|node| self.count_paths(node, end))
             .sum()
     }
 
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let graph = Graph::from_file("../test_input/day11.txt").unwrap();
-        assert_eq!(graph.paths_you_to_out("you", "out"), 5);
+        assert_eq!(graph.count_paths("you", "out"), 5);
     }
 
     #[test]
