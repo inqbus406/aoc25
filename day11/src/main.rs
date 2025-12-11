@@ -1,3 +1,6 @@
+use cached::SizedCache;
+use cached::proc_macro::cached;
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufRead;
@@ -13,8 +16,10 @@ fn main() -> anyhow::Result<()> {
 
     let graph = Graph::from_file(&dir.join("day11.txt"))?;
     let part1 = graph.paths_you_to_out("you", "out");
+    let part2 = graph.part2("svr", "out", false, false);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     Ok(())
 }
@@ -61,8 +66,53 @@ impl Graph {
         self.nodes
             .get(start)
             .expect("Node not found!")
-            .iter()
+            .par_iter()
             .map(|node| self.paths_you_to_out(node, end))
             .sum()
+    }
+
+    fn part2(&self, start: &str, end: &str, visited_dac: bool, visited_fft: bool) -> usize {
+        part2_helper(&self.nodes, start, end, visited_dac, visited_fft)
+    }
+}
+
+#[cached(
+    ty = "SizedCache<String, usize>",
+    create = "{ SizedCache::with_size(1000) }",
+    convert = r#"{ format!("{}:{},{},{}", start, end, dac, fft) }"#
+)]
+fn part2_helper(
+    nodes: &HashMap<String, HashSet<String>>,
+    start: &str,
+    end: &str,
+    dac: bool,
+    fft: bool,
+) -> usize {
+    if start == end {
+        return if dac && fft { 1 } else { 0 };
+    }
+
+    nodes
+        .get(start)
+        .expect("Node not found!")
+        .par_iter()
+        .map(|node| part2_helper(nodes, node, end, dac || node == "dac", fft || node == "fft"))
+        .sum()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1() {
+        let graph = Graph::from_file("../test_input/day11.txt").unwrap();
+        assert_eq!(graph.paths_you_to_out("you", "out"), 5);
+    }
+
+    #[test]
+    fn test_part2() {
+        let graph = Graph::from_file("../test_input/day11part2.txt").unwrap();
+        assert_eq!(graph.part2("svr", "out", false, false), 2);
     }
 }
