@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::File;
 use std::io::BufRead;
 use std::path::PathBuf;
+use z3::ast::Ast;
 
 fn main() -> anyhow::Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
@@ -156,42 +157,48 @@ impl Machine {
             return Some(0);
         }
 
-        let mut fringe = VecDeque::new();
-        let mut visited = HashMap::new();
-        fringe.push_back(vec![0; self.target_joltage.len()]);
-        visited.insert(vec![0; self.target_joltage.len()], 0);
+        let config = z3::Config::new();
+        let context = z3::Context::new(&config);
+        let opt = z3::Optimize::new(&context);
 
-        // dbg!(&self.target_joltage);
+        let buttons: Vec<_> = (0..self.joltage_transitions.len())
+            .map(|i| z3::ast::Int::new_const(&context, format!("b{}", i)))
+            .collect();
 
-        while let Some(cur) = fringe.pop_front() {
-            let cur_steps = visited[&cur];
-            dbg!(cur_steps);
-            // dbg!(&cur, &cur_steps);
-
-            if cur == self.target_joltage {
-                return Some(cur_steps);
-            }
-
-            for next in self.joltage_transitions.iter() {
-                // dbg!(&next);
-                let mut next_state = cur.clone();
-                for n in next.iter() {
-                    next_state[*n as usize] += 1;
-                }
-                if next_state.iter().zip(self.target_joltage.iter()).any(|(n1, n2)| n1 > n2) {
-                    // Already exceeded at least one count, not worth exploring further
-                    continue;
-                }
-                // dbg!(&next_state);
-
-                if !visited.contains_key(&next_state) {
-                    visited.insert(next_state.clone(), cur_steps + 1);
-                    fringe.push_back(next_state);
-                }
-            }
+        for b in &buttons {
+            opt.assert(&b.ge(&z3::ast::Int::from_i64(&context, 0)));
         }
 
-        None
+        for (idx, &target) in self.target_joltage.iter().enumerate() {
+            let mut sum = z3::ast::Int::from_i64(&context, 0);
+            for (trans, button) in self.joltage_transitions.iter().zip(&buttons) {
+                let count = trans.iter().filter(|&&i| i as usize == idx).count() as i64;
+                if count > 0 {
+                    sum = sum + button * count;
+                }
+            }
+            opt.assert(&sum._eq(&z3::ast::Int::from_i64(&context, target as i64)));
+        }
+
+        let total = buttons
+            .iter()
+            .fold(z3::ast::Int::from_i64(&context, 0), |acc, b| acc + b);
+        opt.minimize(&total);
+
+        if opt.check(&[]) == z3::SatResult::Sat {
+            opt.get_model().and_then(|model| {
+                Some(
+                    buttons
+                        .iter()
+                        .filter_map(|b| model.eval(b, true))
+                        .filter_map(|v| v.as_i64())
+                        .map(|v| v as usize)
+                        .sum(),
+                )
+            })
+        } else {
+            None
+        }
     }
 }
 

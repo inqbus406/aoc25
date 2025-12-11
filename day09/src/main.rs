@@ -28,19 +28,20 @@ fn main() -> anyhow::Result<()> {
 
     let mut buffer = String::new();
     reader.read_line(&mut buffer)?;
-    let first_point = point_from_line(&buffer);
+    let first_point = point_from_line(&buffer).expect("invalid first point");
+    
     let mut last = first_point.clone();
-
     for line in reader.lines() {
         let Ok(line) = line else {
             continue;
         };
 
-        let cur = point_from_line(&line);
-        green_points.extend(points_between(&last, &cur));
+        if let Some(cur) = point_from_line(&line) {
+            green_points.extend(points_between(&last, &cur));
 
-        points.insert(cur);
-        last = cur;
+            points.insert(cur);
+            last = cur;
+        }
     }
     // Connect last and first
     green_points.extend(points_between(&last, &first_point));
@@ -67,9 +68,6 @@ fn part1(points: &HashSet<Point>) -> usize {
 }
 
 fn part2(corners: &HashSet<Point>, perimeter: &HashSet<Point>) -> usize {
-    // Prepare data for parallel processing and progress tracking
-    let points: Vec<Point> = corners.iter().copied().collect();
-
     // Global bounding box of the polygon for quick rejects
     let (min_x, max_x) = perimeter.iter().fold((usize::MAX, 0usize), |(lo, hi), p| {
         (lo.min(p.0), hi.max(p.0))
@@ -85,7 +83,7 @@ fn part2(corners: &HashSet<Point>, perimeter: &HashSet<Point>) -> usize {
     let global_best = Arc::new(AtomicUsize::new(0));
     let start = Instant::now();
 
-    let combinations = points.iter().combinations(2).collect::<Vec<_>>();
+    let combinations = corners.iter().combinations(2).collect::<Vec<_>>();
 
     let result = combinations
         .par_iter()
@@ -251,13 +249,17 @@ fn rectangle_area(p1: &Point, p2: &Point) -> usize {
     (p2.0.abs_diff(p1.0) + 1) * (p2.1.abs_diff(p1.1) + 1)
 }
 
-fn point_from_line(line: &str) -> Point {
+fn point_from_line(line: &str) -> Option<Point> {
     let coords = line
         .split(',')
-        .map(|x| x.trim().parse::<usize>().unwrap())
+        .flat_map(|x| x.trim().parse::<usize>())
         .collect::<Vec<_>>();
 
-    Point(coords[0], coords[1])
+    if coords.len() != 2 {
+        None
+    } else {
+        Some(Point(coords[0], coords[1]))
+    }
 }
 
 // Points MUST be on a line!

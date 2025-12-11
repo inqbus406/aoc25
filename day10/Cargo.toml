@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 regex = "1.12.2"
+z3 = "0.12"
