@@ -16,6 +16,8 @@ fn main() -> anyhow::Result<()> {
     let mut buffer = String::new();
     let mut sizes: Vec<usize> = Vec::new();
     let mut index = 0;
+    let mut trees = Vec::new();
+
     while reader.read_line(&mut buffer)? > 0 {
         let line = buffer.trim();
         if line.is_empty() {
@@ -24,6 +26,7 @@ fn main() -> anyhow::Result<()> {
             continue;
         }
         if line.contains('x') {
+            trees.push(line.to_string());
             buffer.clear();
             break;
         }
@@ -32,26 +35,28 @@ fn main() -> anyhow::Result<()> {
             buffer.clear();
             continue;
         }
-        sizes[index] += line.chars()
-            .into_iter()
-            .filter(|c| *c == '#')
-            .count();
+        sizes[index] += line.chars().into_iter().filter(|c| *c == '#').count();
 
         buffer.clear();
-
     }
 
+    trees.extend(reader.lines().into_iter().map(|l| l.unwrap()));
+
     let mut result = 0;
-    while reader.read_line(&mut buffer)? > 0 {
-        let tokens = buffer.trim().split(':').collect::<Vec<_>>();
-        let size = tokens[0].split('x')
+    for tree in trees {
+        let tokens = tree.trim().split(':').collect::<Vec<_>>();
+        let size = tokens[0]
+            .split('x')
             .map(|s| s.parse::<usize>().unwrap())
             .product::<usize>();
-        let counts = tokens[1].split_whitespace()
+        let counts = tokens[1]
+            .split_whitespace()
             .map(|s| s.parse::<usize>().unwrap())
             .collect::<Vec<_>>();
 
-        let required_size = counts.iter().zip(sizes.iter())
+        let required_size = counts
+            .iter()
+            .zip(sizes.iter())
             .map(|(c, s)| c * s)
             .sum::<usize>();
         if required_size <= size {
